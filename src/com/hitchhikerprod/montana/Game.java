@@ -2,14 +2,18 @@ package com.hitchhikerprod.montana;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class Game {
     public void solve() {
         final Board board = initializeBoard();
-        final int finalScore = solve(board, 0).score();
-        if (finalScore == 13 * 4) {
+        System.out.println(board);
+        final Board solved = solve(board, 0);
+        System.out.println(solved);
+        final int finalScore = solved.score();
+        if (finalScore == 12 * 4) {
             System.out.println("WIN!");
         } else {
             System.out.println("Lost ;(");
@@ -19,15 +23,10 @@ public class Game {
     private Board solve(Board board, int level) {
         Set<Action> possibleMoves = board.moves();
         if (possibleMoves.isEmpty()) {
-            /*
-            System.out.println("-----");
-            System.out.print(board);
-            final int score = board.score();
-            System.out.printf("[%d] Tail score: %d\n", level, score);
-            System.out.println("-----");
-             */
             return board;
         }
+
+        // TODO: don't duplicate Boards when there's only one possible move
 
         int bestScore = 0;
         Board bestBoard = null;
@@ -35,9 +34,19 @@ public class Game {
             //System.out.printf("[%d] Trying %s\n", level, move);
             final Board newBoard = board.copy();
             newBoard.moveCardTo(move.slot(), move.card());
+
+            final String hash = newBoard.toString();
+            if (visitedBoards.contains(hash)) {
+                continue;
+            }
+
+            visitedBoards.add(hash);
             final Board resultBoard = solve(newBoard, level + 1);
             if (resultBoard == null) continue;
             final int resultScore = resultBoard.score();
+            if (resultScore == 48) {
+                return resultBoard;
+            }
             if (resultScore > bestScore) {
                 //System.out.printf("[%d] Best score improved to %d\n", level, resultScore);
                 bestScore = resultScore;
@@ -47,6 +56,8 @@ public class Game {
         //System.out.printf("[%d] Returning best score %d\n", level, bestScore);
         return bestBoard;
     }
+
+    Set<String> visitedBoards = new HashSet<>();
 
     private Board initializeBoard() {
         final Board board = new Board();
