@@ -41,31 +41,38 @@ public class Board {
         slotToCard[slot.row()][slot.column()] = card;
     }
 
-    public void moveCardTo(Slot newSlot, Card card) {
-        final Slot oldSlot = getSlot(card);
-        blanks.remove(newSlot);
-        putCard(newSlot, card);
-        putBlank(oldSlot);
-        putSlot(card, newSlot);
+    public void applyAction(Action move) {
+        blanks.remove(move.newSlot());
+        putCard(move.newSlot(), move.card());
+        putBlank(move.oldSlot());
+        putSlot(move.card(), move.newSlot());
+    }
+
+    public void reverseAction(Action move) {
+        blanks.remove(move.oldSlot());
+        putCard(move.oldSlot(), move.card());
+        putBlank(move.newSlot());
+        putSlot(move.card(), move.oldSlot());
     }
 
     public Set<Action> moves() {
         final Set<Action> moves = new HashSet<>();
-        for (Slot slot : blanks) {
-            final Slot left = slot.left();
+        for (Slot destination : blanks) {
+            final Slot left = destination.left();
             if (left == null) {
                 for (Suit suit : Suit.values()) {
                     final Card two = new Card(2, suit);
-                    final Slot where = getSlot(two);
-                    if (where.column() == 0) continue;
-                    moves.add(new Action(two, slot));
+                    final Slot source = getSlot(two);
+                    if (source.column() == 0) continue;
+                    moves.add(new Action(source, two, destination));
                 }
             } else {
                 final Card predecessor = getCard(left);
                 if (predecessor == null) continue;
                 final Card candidate = predecessor.follower();
                 if (candidate == null) continue;
-                moves.add(new Action(candidate, slot));
+                final Slot source = getSlot(candidate);
+                moves.add(new Action(source, candidate, destination));
             }
         }
         return moves;

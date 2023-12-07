@@ -33,7 +33,7 @@ public class Game {
         for (Action move : possibleMoves) {
             //System.out.printf("[%d] Trying %s\n", level, move);
             final Board newBoard = board.copy();
-            newBoard.moveCardTo(move.slot(), move.card());
+            newBoard.applyAction(move);
 
             final String hash = newBoard.toString();
             if (visitedBoards.contains(hash)) {
