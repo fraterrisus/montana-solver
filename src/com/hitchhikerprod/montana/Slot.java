@@ -7,7 +7,5 @@ public record Slot(int row, int column) {
         else return new Slot(row, newColumn);
     }
 
-    public Slot copy() {
-        return new Slot(this.row, this.column);
-    }
+    public String toString() { return String.format("(%d,%d)", row, column); }
 }

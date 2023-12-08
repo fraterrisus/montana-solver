@@ -1,60 +1,80 @@
 package com.hitchhikerprod.montana;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 public class Game {
     public void solve() {
         final Board board = initializeBoard();
-        System.out.println(board);
-        final Board solved = solve(board, 0);
-        System.out.println(solved);
-        final int finalScore = solved.score();
-        if (finalScore == 12 * 4) {
-            System.out.println("WIN!");
-        } else {
-            System.out.println("Lost ;(");
+        for (int round = 0; round < 3; round++) {
+            System.out.println(MessageFormat.format("*** Round {0}", round + 1));
+            System.out.println(board);
+            final Score solution = solve(board, 0);
+            for (Action move : solution.steps()) {
+                System.out.println(move);
+                board.applyAction(move);
+            }
+            System.out.println("\n" + board);
+            if (solution.score() == 12 * 4) {
+                System.out.println("Won!");
+                return;
+            }
+            shuffleUnsetCards(board);
         }
+        System.out.println("Lost :(");
+/*
+        for (Action move : solution.steps()) {
+            System.out.println(move);
+            solved.applyAction(move);
+
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 13; col++) {
+                    if (move.newSlot().row() == row && move.newSlot().column() == col) System.out.print(">");
+                    else System.out.print(" ");
+
+                    final Card thisCard = solved.getCard(new Slot(row, col));
+                    System.out.print(thisCard == null ? ".." : thisCard);
+                }
+                System.out.println();
+            }
+        }
+*/
     }
 
-    private Board solve(Board board, int level) {
-        Set<Action> possibleMoves = board.moves();
+    private Score solve(Board board, int level) {
+        final Set<Action> possibleMoves = board.moves();
         if (possibleMoves.isEmpty()) {
-            return board;
+            return new Score(board.score(), new LinkedList<>());
         }
-
-        // TODO: don't duplicate Boards when there's only one possible move
-
-        int bestScore = 0;
-        Board bestBoard = null;
+        Score best = new Score(-1, new LinkedList<>());
         for (Action move : possibleMoves) {
-            //System.out.printf("[%d] Trying %s\n", level, move);
-            final Board newBoard = board.copy();
-            newBoard.applyAction(move);
+            board.applyAction(move);
 
-            final String hash = newBoard.toString();
+            final String hash = board.toString();
             if (visitedBoards.contains(hash)) {
+                board.reverseAction(move);
                 continue;
+            } else {
+                visitedBoards.add(hash);
             }
 
-            visitedBoards.add(hash);
-            final Board resultBoard = solve(newBoard, level + 1);
-            if (resultBoard == null) continue;
-            final int resultScore = resultBoard.score();
-            if (resultScore == 48) {
-                return resultBoard;
-            }
-            if (resultScore > bestScore) {
-                //System.out.printf("[%d] Best score improved to %d\n", level, resultScore);
-                bestScore = resultScore;
-                bestBoard = resultBoard;
+            final Score newScore = solve(board, level + 1);
+            board.reverseAction(move);
+
+            if (newScore.score() == 48) {
+                newScore.steps().addFirst(move);
+                return newScore;
+            } else if (newScore.score() > best.score()) {
+                best = newScore;
+                best.steps().addFirst(move);
             }
         }
-        //System.out.printf("[%d] Returning best score %d\n", level, bestScore);
-        return bestBoard;
+        return best;
     }
 
     Set<String> visitedBoards = new HashSet<>();
@@ -77,12 +97,55 @@ public class Game {
                 if (card.rank() == 1) {
                     board.putBlank(slot);
                 } else {
-                    board.putCard(slot, card);
-                    board.putSlot(card, slot);
+                    board.putCardInSlot(slot, card);
+                    board.assignSlotToCard(card, slot);
                 }
             }
         }
         return board;
+    }
+
+    private void shuffleUnsetCards(Board board) {
+        // System.out.println("Before:\n" + board);
+
+        List<Card> deck = new ArrayList<>();
+        List<Integer> startOfDeal = new ArrayList<>();
+        for (int row = 0; row < 4; row++) {
+            int start = 0;
+            for (int col = 0; col < 13; col++) {
+                final Slot thisSlot = new Slot(row, col);
+                final Card thisCard = board.getCardForSlot(thisSlot);
+                if (start == col && thisCard != null && thisCard.rank() == col + 2) {
+                    start++;
+                } else {
+                    if (thisCard != null) {
+                        deck.add(thisCard);
+                        board.removeCardFromBoard(thisCard, thisSlot);
+                    }
+                }
+            }
+            startOfDeal.add(start);
+        }
+
+        // System.out.println("Clean:\n" + board);
+
+        Collections.shuffle(deck);
+        // System.out.println("Deck: " +
+        //    String.join(" ", deck.stream().map(Card::toString).toList()));
+
+        for (int row = 0; row < 4; row++) {
+            final int start = startOfDeal.get(row);
+            for (int col = 0; col < 13; col++) {
+                if (col <= start) continue;
+                final Card card = deck.removeFirst();
+                final Slot slot = new Slot(row, col);
+                board.putCardInSlot(slot, card);
+                board.assignSlotToCard(card, slot);
+            }
+        }
+
+        // System.out.println("Done:\n" + board);
+        // assert(deck.isEmpty());
     }
 
     public static void main(String[] args) {

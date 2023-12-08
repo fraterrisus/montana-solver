@@ -17,8 +17,4 @@ public record Card(int rank, Suit suit) {
             default -> String.valueOf(rank);
         }) + suit.firstChar();
     }
-
-    public Card copy() {
-        return new Card(this.rank, this.suit);
-    }
 }
