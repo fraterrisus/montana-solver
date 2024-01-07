@@ -9,11 +9,11 @@ Legal moves involve picking up a card and placing it in a currently-empty space 
 predecessor of the same suit. For example, if there is an empty space to the right of the Three of Hearts (3H), the 
 Four of Hearts (4H) may be picked up and placed next to the 3H, leaving an empty space where the 4H once was.
 
-Empty spaces in the first column may be filled by any Two that has not already been placed in the first column. No card
-can be placed to the right of a King, or to the right of an empty space.
+Empty spaces in the first column may be filled by any Two that isn't already in the first column. No card can be placed
+to the right of a King, or to the right of an empty space.
 
-The goal is to sort all the cards by suit and order, with the Two in the first column and the King in the twelfth column
-(the thirteenth column will remain empty).
+The goal is to sort all the cards by suit and rank, with the Two in the first column and the King in the twelfth column
+(the thirteenth column will remain empty). It doesn't matter which suit is in which row.
 
 If there are no more moves, you may reshuffle twice. Lock down every Two that is in the first column, plus every
 **consecutive** card of the same suit to the right of it. For example, if a column starts with 2C 3C 7H 8D 6C, the 2C
