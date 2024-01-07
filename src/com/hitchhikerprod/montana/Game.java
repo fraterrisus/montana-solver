@@ -1,5 +1,8 @@
 package com.hitchhikerprod.montana;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,8 +12,20 @@ import java.util.List;
 import java.util.Set;
 
 public class Game {
+    private static final boolean DEBUG_SHUFFLE = false;
+
+    final Board board;
+    final Set<String> visitedBoards = new HashSet<>();
+
+    public Game() {
+        this.board = Board.random();
+    }
+
+    public Game(List<String> boardData) {
+        this.board = Board.from(boardData);
+    }
+
     public void solve() {
-        final Board board = initializeBoard();
         for (int round = 0; round < 3; round++) {
             System.out.println(MessageFormat.format("*** Round {0}", round + 1));
             System.out.println(board);
@@ -27,23 +42,6 @@ public class Game {
             shuffleUnsetCards(board);
         }
         System.out.println("Lost :(");
-/*
-        for (Action move : solution.steps()) {
-            System.out.println(move);
-            solved.applyAction(move);
-
-            for (int row = 0; row < 4; row++) {
-                for (int col = 0; col < 13; col++) {
-                    if (move.newSlot().row() == row && move.newSlot().column() == col) System.out.print(">");
-                    else System.out.print(" ");
-
-                    final Card thisCard = solved.getCard(new Slot(row, col));
-                    System.out.print(thisCard == null ? ".." : thisCard);
-                }
-                System.out.println();
-            }
-        }
-*/
     }
 
     private Score solve(Board board, int level) {
@@ -77,36 +75,12 @@ public class Game {
         return best;
     }
 
-    Set<String> visitedBoards = new HashSet<>();
-
-    private Board initializeBoard() {
-        final Board board = new Board();
-
-        List<Card> deck = new ArrayList<>();
-        for (Suit suit : Suit.values()) {
-            for (int rank = 1; rank <= 13; rank++) {
-                deck.add(new Card(rank, suit));
-            }
-        }
-        Collections.shuffle(deck);
-
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 13; col++) {
-                final Card card = deck.removeFirst();
-                final Slot slot = new Slot(row, col);
-                if (card.rank() == 1) {
-                    board.putBlank(slot);
-                } else {
-                    board.putCardInSlot(slot, card);
-                    board.assignSlotToCard(card, slot);
-                }
-            }
-        }
-        return board;
+    private static void debugLog(String debugString) {
+        if (DEBUG_SHUFFLE) System.out.println(debugString);
     }
 
     private void shuffleUnsetCards(Board board) {
-        // System.out.println("Before:\n" + board);
+        debugLog("Before:\n" + board);
 
         List<Card> deck = new ArrayList<>();
         List<Integer> startOfDeal = new ArrayList<>();
@@ -127,11 +101,10 @@ public class Game {
             startOfDeal.add(start);
         }
 
-        // System.out.println("Clean:\n" + board);
+        debugLog("Clean:\n" + board);
+        debugLog("Deck: " + String.join(" ", deck.stream().map(Card::toString).toList()));
 
         Collections.shuffle(deck);
-        // System.out.println("Deck: " +
-        //    String.join(" ", deck.stream().map(Card::toString).toList()));
 
         for (int row = 0; row < 4; row++) {
             final int start = startOfDeal.get(row);
@@ -139,16 +112,25 @@ public class Game {
                 if (col <= start) continue;
                 final Card card = deck.removeFirst();
                 final Slot slot = new Slot(row, col);
-                board.putCardInSlot(slot, card);
-                board.assignSlotToCard(card, slot);
+                board.addCardToBoard(slot, card);
             }
         }
 
-        // System.out.println("Done:\n" + board);
-        // assert(deck.isEmpty());
+        debugLog("Done:\n" + board);
+        assert(deck.isEmpty());
     }
 
     public static void main(String[] args) {
-        new Game().solve();
+        final Game game = (args.length > 0) ? new Game(readGameFromFile(args[0])) : new Game();
+        game.solve();
+    }
+
+    private static List<String> readGameFromFile(String filename) {
+        try (final FileReader fileReader = new FileReader(filename)) {
+            final BufferedReader bufferedReader = new BufferedReader(fileReader);
+            return bufferedReader.lines().toList();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

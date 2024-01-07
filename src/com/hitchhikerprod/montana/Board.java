@@ -1,8 +1,12 @@
 package com.hitchhikerprod.montana;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class Board {
@@ -10,9 +14,87 @@ public class Board {
     final Card[][] slotToCard = new Card[4][13];
     final Map<Card, Slot> cardToSlot = new HashMap<>();
 
+    private Board() {}
+
+    public static Board from(List<String> boardString) {
+        final Board board = new Board();
+        if (boardString.size() < 4)
+            throw new RuntimeException("Can't parse board: not enough lines");
+
+        final Map<Card, Boolean> fullDeck = new HashMap<>();
+        for (Suit suit : Suit.values()) {
+            for (int rank = 2; rank <= 13; rank++) {
+                fullDeck.put(new Card(rank, suit), false);
+            }
+        }
+
+        for (int row = 0; row < 4; row++) {
+            final String lineString = boardString.get(row);
+            final String[] slots = lineString.split("\\s+");
+            if (slots.length < 13)
+                throw new RuntimeException("Can't parse board: not enough cards in row " + (row + 1));
+            for (int col = 0; col < 13; col++) {
+                final Slot thisSlot = new Slot(row, col);
+                final Optional<Card> thisCard = Card.from(slots[col]);
+                if (thisCard.isPresent()) {
+                    fullDeck.put(thisCard.get(), true);
+                    board.putCardInSlot(thisSlot, thisCard.get());
+                    board.assignSlotToCard(thisCard.get(), thisSlot);
+                } else {
+                    board.putBlank(thisSlot);
+                }
+            }
+        }
+
+        var missing = fullDeck.entrySet().stream()
+            .filter(e -> !e.getValue())
+            .findAny();
+        if (missing.isPresent()) {
+            throw new RuntimeException("Can't parse board: missing card " + missing.get().getKey());
+        }
+
+        return board;
+    }
+
+    public static Board random() {
+        final Board board = new Board();
+
+        final List<Card> deck = new ArrayList<>();
+        for (Suit suit : Suit.values()) {
+            for (int rank = 1; rank <= 13; rank++) {
+                deck.add(new Card(rank, suit));
+            }
+        }
+        Collections.shuffle(deck);
+
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 13; col++) {
+                final Card card = deck.removeFirst();
+                final Slot slot = new Slot(row, col);
+                if (card.rank() == 1) {
+                    board.putBlank(slot);
+                } else {
+                    board.putCardInSlot(slot, card);
+                    board.assignSlotToCard(card, slot);
+                }
+            }
+        }
+        return board;
+    }
+
     public void putBlank(Slot slot) {
         blanks.add(slot);
         putCardInSlot(slot, null);
+    }
+
+    public void removeBlank(Slot slot) {
+        blanks.remove(slot);
+    }
+
+    public void addCardToBoard(Slot slot, Card card) {
+        removeBlank(slot);
+        putCardInSlot(slot, card);
+        assignSlotToCard(card, slot);
     }
 
     public void removeCardFromBoard(Card card, Slot slot) {
@@ -42,17 +124,13 @@ public class Board {
     public void clearSlot(Slot slot) { slotToCard[slot.row()][slot.column()] = null; }
 
     public void applyAction(Action move) {
-        blanks.remove(move.newSlot());
-        putCardInSlot(move.newSlot(), move.card());
+        addCardToBoard(move.newSlot(), move.card());
         putBlank(move.oldSlot());
-        assignSlotToCard(move.card(), move.newSlot());
     }
 
     public void reverseAction(Action move) {
-        blanks.remove(move.oldSlot());
-        putCardInSlot(move.oldSlot(), move.card());
+        addCardToBoard(move.oldSlot(), move.card());
         putBlank(move.newSlot());
-        assignSlotToCard(move.card(), move.oldSlot());
     }
 
     public Set<Action> moves() {
