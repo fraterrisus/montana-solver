@@ -1,3 +1,6 @@
+run.sh
+game.txt
+
 ### IntelliJ IDEA ###
 out/
 !**/src/main/**/out/
