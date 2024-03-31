@@ -85,15 +85,23 @@ public class Game {
         List<Card> deck = new ArrayList<>();
         List<Integer> startOfDeal = new ArrayList<>();
         for (int row = 0; row < 4; row++) {
+            // how long is the run of same-suit cards
             int start = 0;
+            // what is the suit of this row('s first card)
+            final Suit thisSuit = board.getCardForSlot(new Slot(row, 0)).suit();
+
             for (int col = 0; col < 13; col++) {
                 final Slot thisSlot = new Slot(row, col);
                 final Card thisCard = board.getCardForSlot(thisSlot);
-                if (start == col && thisCard != null && thisCard.rank() == col + 2) {
-                    start++;
-                } else {
-                    if (thisCard != null) {
+                if (thisCard != null) {
+                    if (start == col &&                 // if the row of same-suit cards got this far
+                        thisCard.suit() == thisSuit &&  // and this card has the same suit as the rest of the row
+                        thisCard.rank() == col + 2) {   // and this card has the right rank for this slot
+                        start++;                        // then increment the pointer
+                    } else {
+                        // otherwise add this card to the deck so it gets shuffled
                         deck.add(thisCard);
+                        // and remove it from the board
                         board.removeCardFromBoard(thisCard, thisSlot);
                     }
                 }
